@@ -1,6 +1,7 @@
+from multiprocessing.resource_sharer import stop
+from filehandler import IndexPrinter
 from collections import defaultdict
 from time import time
-from turtle import title
 import xml.sax
 import re
 import sys
@@ -12,7 +13,6 @@ from Stemmer import Stemmer
 
 # ps = PorterStemmer()
 ps = Stemmer('porter')
-from filehandler import IndexPrinter
 
 
 # xml.sax = Simple API for XML
@@ -22,11 +22,8 @@ from filehandler import IndexPrinter
 # ---------------------------------------------------------------------------- #
 #                             Global Variables                                 #
 # ---------------------------------------------------------------------------- #
-nltk.download("stopwords")
+# nltk.download("stopwords")
 stop_words = set(stopwords.words("english"))
-stop_words = list(stop_words)
-stop_words.append("reflist")
-stop_words.append("")
 # infobox, reflist, can also be added to stopwords?
 totalDocumentsParsed = 0
 index = defaultdict(list)
@@ -34,7 +31,7 @@ index = defaultdict(list)
 maxDocuments = 1500
 filecounter = 0
 dirpath = sys.argv[2]
-# dirpath = "indexfolder1/"
+# dirpath = "indexfolder/"
 st = time.time()
 total_tokens = 0
 index_tokens = 0
@@ -54,14 +51,10 @@ class TextProcessing:
 
     def stemming_and_stopping(self, data):
         global total_tokens
-        StemmedUp = list()
-        for i in data:
-            total_tokens+=1
-            word = ps.stemWord(i)
-            # here i made changes
-            if word in stop_words:
-                continue
-            StemmedUp.append(word)
+        StemmedUp = []
+        StemmedUp = [ps.stemWord(i) for i in data if i not in stop_words if len(i) < 35 if len(i) >=2]
+        total_tokens += 1
+            
         return StemmedUp
 
     def category_extraction(self, data):
@@ -93,7 +86,6 @@ class TextProcessing:
         # tbod = time.time()
         # references body mein remove symbols pattern
         body_text = re.sub(r"\{\{.*\}\}", r" ", data)
-        body_text = data
         body_text = self.tokenise(body_text)
         # stemming
         stemmed_tokens = self.stemming_and_stopping(body_text)
@@ -117,7 +109,7 @@ class TextProcessing:
         # print("links extraction time ", time.time() - tlin)
         return stemmed_tokens
 
-    def infobox_extraction(self, data): # demoss #
+    def infobox_extraction(self, data):  # demoss #
         # tinf = time.time()
         infobox_data = list()
         data = re.split(r"==\s*references\s*==", data)
@@ -161,23 +153,23 @@ class TextProcessing:
             tokens = self.tokenise(data)
             # stemming
             stemmed_tokens = self.stemming_and_stopping(tokens)
-            print("total = ", totalDocumentsParsed)
+            # print("total = ", totalDocumentsParsed)
             return stemmed_tokens
         else:
             references = list()
             category = list()
             links = list()
-            # body = []
-            # infobox = []
+            body = []
+            infobox = []
             # removing {|}
             data = re.sub(r"{\|(.*?)\|}", " ", data, flags=re.DOTALL)
             # removing html stuff
             data = re.sub(r"&nbsp;|&lt;|&gt;|&amp;|&quot;|&apos;", r" ", data)
             # # need to look at this
             # made changes here
-            # data = re.sub(r'{{v?cite(.*?)}}', ' ', data, flags = re.DOTALL)
+            data = re.sub(r'{{v?cite(.*?)}}', ' ', data, flags=re.DOTALL)
             # # need to look at this
-            # data = re.sub(r'<(.*?)>', ' ', data, flags = re.DOTALL)
+            data = re.sub(r'<(.*?)>', ' ', data, flags=re.DOTALL)
 
             links = self.links_extraction(data)
             # substituting hyperlinks with " "
@@ -250,10 +242,11 @@ def index_creator(title, body, infobox, category, links, references):
             s += index_type[6] + str(idreferences)
 
         index[i].append(s)
-        index_tokens+=1
+        index_tokens += 1
 
     if totalDocumentsParsed % maxDocuments == 0:
         index, filecounter = IndexPrinter(index, filecounter, dirpath)
+        # print("Made file ",filecounter)
 
 
 class WikiDumpXMLHandler(xml.sax.ContentHandler):
@@ -289,13 +282,13 @@ class WikiDumpXMLHandler(xml.sax.ContentHandler):
             body, infobox, category, links, references = self.processor.processData(
                 self.text, False
             )
-            # if totalDocumentsParsed == 1500:
-            #     et = time.time()
-            #     total = et - st
-            #     print("Execution time:", total, "seconds")
-            #     quit()
             # next is indexing right here
-            # index_creator(WikiDumpXMLHandler.title_processed, body, infobox, category, links, references)
+            index_creator(WikiDumpXMLHandler.title_processed,
+                          body, infobox, category, links, references)
+            # if(totalDocumentsParsed == 15000):
+            #     et = time.time()
+            #     print("time taken = ", et - st)
+            #     quit()
             # print(body)
             # body mein issue? theek lag raha hai
             # infobox fixed
@@ -327,12 +320,13 @@ parser.setContentHandler(Handler)
 filepath = sys.argv[1]
 parser.parse(filepath)
 
+index, filecounter = IndexPrinter(index, filecounter, dirpath)
+et = time.time()
+print("time taken = ", et - st)
 
-## same code as Hitesh. change
-stats = sys.argv[3]
-with open(stats, 'w') as f:
+invertedindex_stats = sys.argv[3]
+with open(invertedindex_stats, 'w') as f:
     string = "Total Tokens: " + str(total_tokens) + "\n"
     f.write(string)
     string = "Tokens in inverted index: " + str(index_tokens) + '\n'
     f.write(string)
-
