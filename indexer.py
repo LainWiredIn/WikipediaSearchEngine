@@ -1,4 +1,5 @@
-from multiprocessing.resource_sharer import stop
+import os
+from os.path import exists
 from filehandler import IndexPrinter
 from collections import defaultdict
 from time import time
@@ -31,6 +32,9 @@ index = defaultdict(list)
 maxDocuments = 1500
 filecounter = 0
 dirpath = sys.argv[2]
+file_exists = exists(dirpath)
+if file_exists == False:
+    os.mkdir(dirpath)
 # dirpath = "indexfolder/"
 st = time.time()
 total_tokens = 0
@@ -47,13 +51,14 @@ class TextProcessing:
 
     def tokenise(self, data):
         tokens = re.split(r"[^A-Za-z0-9]+", data)
+        global total_tokens
+        total_tokens += len(tokens)
         return tokens
 
     def stemming_and_stopping(self, data):
-        global total_tokens
         StemmedUp = []
         StemmedUp = [ps.stemWord(i) for i in data if i not in stop_words if len(i) < 35 if len(i) >=2]
-        total_tokens += 1
+        
             
         return StemmedUp
 
@@ -120,19 +125,20 @@ class TextProcessing:
         if x <= 1:
             return infobox_data
         else:
-            flag = False
             infobox_listing = data[0].split("\n")
+            flag = False
             for i in infobox_listing:
                 f = re.match(r"\{\{infobox", i)
-                if f:
-                    flag = True
-                    i = re.sub(r"\{\{infobox(.*)", r"\1", i)
-                    infobox_data.append(i)
-                elif flag:
+                if f == False and flag == True:
                     if i == "}}":
                         flag = False
                         continue
                     infobox_data.append(i)
+                elif f:
+                    flag = True
+                    i = re.sub(r"\{\{infobox(.*)", r"\1", i)
+                    infobox_data.append(i)
+                    
 
             infobox_data = self.tokenise(" ".join(infobox_data))
             # stemming
@@ -187,6 +193,9 @@ def looper(typo, diction, wording):
         diction[i] += 1
         wording[i] += 1
 
+# ---------------------------------------------------------------------------- #
+#                             Index Creation                                   #
+# ---------------------------------------------------------------------------- #
 
 def index_creator(title, body, infobox, category, links, references):
     global totalDocumentsParsed
@@ -247,6 +256,11 @@ def index_creator(title, body, infobox, category, links, references):
     if totalDocumentsParsed % maxDocuments == 0:
         index, filecounter = IndexPrinter(index, filecounter, dirpath)
         # print("Made file ",filecounter)
+
+
+# ---------------------------------------------------------------------------- #
+#                             Handler                                          #
+# ---------------------------------------------------------------------------- #
 
 
 class WikiDumpXMLHandler(xml.sax.ContentHandler):
@@ -312,6 +326,11 @@ class WikiDumpXMLHandler(xml.sax.ContentHandler):
 # data = re.sub(r'http[^\ ]*\ ', r' ', url)
 # print(data)
 # quit()
+
+# ---------------------------------------------------------------------------- #
+#                             main                                             #
+# ---------------------------------------------------------------------------- #
+
 Handler = WikiDumpXMLHandler()
 parser = xml.sax.make_parser()
 parser.setFeature(xml.sax.handler.feature_namespaces, 0)
@@ -324,6 +343,9 @@ index, filecounter = IndexPrinter(index, filecounter, dirpath)
 et = time.time()
 print("time taken = ", et - st)
 
+# ---------------------------------------------------------------------------- #
+#                             token counter                                    #
+# ---------------------------------------------------------------------------- #
 invertedindex_stats = sys.argv[3]
 with open(invertedindex_stats, 'w') as f:
     string = "Total Tokens: " + str(total_tokens) + "\n"

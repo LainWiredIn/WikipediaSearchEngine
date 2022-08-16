@@ -25,9 +25,6 @@
 
 - https://www.projectpro.io/recipes/use-porter-stemmer
 - https://www.analyticsvidhya.com/blog/2022/06/stemming-vs-lemmatization-in-nlp-must-know-differences/#:~:text=Stemming%20is%20a%20process%20that,'%20would%20return%20'Car'.
-- https://github.com/dhruvkhattar/Wikipedia-Search-Engine/blob/master/code/indexer.py
-- https://github.com/rishabh26malik/Wikipedia-Search-Engine/blob/96a724731f32d40a86ca5fae2841e4dd4714f6e1/src/textProcessing.py#L26
-- https://github.com/DhavalTaunk08/Wiki-Search-Engine/blob/main/english_indexer.py
 - https://www.geeksforgeeks.org/nlp-how-tokenizing-text-sentence-words-works/#:~:text=Tokenization%20is%20the%20process%20of,Sentences%20into%20words%20tokenization
 - https://towardsdatascience.com/5-simple-ways-to-tokenize-text-in-python-92c6804edfc4#31ad
 - https://goodboychan.github.io/python/datacamp/natural_language_processing/2020/07/15/01-Regular-expressions-and-word-tokenization.html#Practicing-regular-expressions---re.split()-and-re.findall()
