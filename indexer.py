@@ -28,13 +28,18 @@ stop_words = set(stopwords.words("english"))
 # infobox, reflist, can also be added to stopwords?
 totalDocumentsParsed = 0
 index = defaultdict(list)
+title_list = []
 # 1500 documents per file
-maxDocuments = 1500
+maxDocuments = 15000
 filecounter = 0
 dirpath = sys.argv[2]
 file_exists = exists(dirpath)
 if file_exists == False:
     os.mkdir(dirpath)
+new_new_folder = "titles"
+file_indeed_exists = exists(new_new_folder)
+if file_indeed_exists == False:
+    os.mkdir(new_new_folder)
 # dirpath = "indexfolder/"
 st = time.time()
 total_tokens = 0
@@ -157,9 +162,12 @@ class TextProcessing:
         if flag == True:
             # tokenisation
             tokens = self.tokenise(data)
+            # print(tokens)
+            # get title for storing
             # stemming
             stemmed_tokens = self.stemming_and_stopping(tokens)
             # print("total = ", totalDocumentsParsed)
+            # print(stemmed_tokens)
             return stemmed_tokens
         else:
             references = list()
@@ -197,9 +205,10 @@ def looper(typo, diction, wording):
 #                             Index Creation                                   #
 # ---------------------------------------------------------------------------- #
 
-def index_creator(title, body, infobox, category, links, references):
+def index_creator(file_title, title, body, infobox, category, links, references):
     global totalDocumentsParsed
     global index
+    global title_list
     global maxDocuments
     num = totalDocumentsParsed
     global filecounter
@@ -254,7 +263,8 @@ def index_creator(title, body, infobox, category, links, references):
         index_tokens += 1
 
     if totalDocumentsParsed % maxDocuments == 0:
-        index, filecounter = IndexPrinter(index, filecounter, dirpath)
+        title_list, index, filecounter = IndexPrinter(title_list, index, filecounter, dirpath)
+        title_list = []
         # print("Made file ",filecounter)
 
 
@@ -284,6 +294,7 @@ class WikiDumpXMLHandler(xml.sax.ContentHandler):
     # Call when an elements ends
     def endElement(self, x):
         global st
+        global title_list
         global totalDocumentsParsed
         if self.current == "title":
             # print(f"title: {self.title}")
@@ -291,13 +302,15 @@ class WikiDumpXMLHandler(xml.sax.ContentHandler):
             WikiDumpXMLHandler.title_processed = self.processor.processData(
                 self.title, True
             )
+            title_list.append(self.title)
+            
         if self.current == "text":
             # print(f"text: {self.text}")
             body, infobox, category, links, references = self.processor.processData(
                 self.text, False
             )
             # next is indexing right here
-            index_creator(WikiDumpXMLHandler.title_processed,
+            index_creator(self.title, WikiDumpXMLHandler.title_processed,
                           body, infobox, category, links, references)
             # if(totalDocumentsParsed == 15000):
             #     et = time.time()
@@ -339,7 +352,7 @@ parser.setContentHandler(Handler)
 filepath = sys.argv[1]
 parser.parse(filepath)
 
-index, filecounter = IndexPrinter(index, filecounter, dirpath)
+title_tmp, index, filecounter = IndexPrinter(title_list, index, filecounter, dirpath)
 et = time.time()
 print("time taken = ", et - st)
 
